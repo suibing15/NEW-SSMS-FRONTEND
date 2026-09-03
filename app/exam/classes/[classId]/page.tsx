@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, GraduationCap } from "lucide-react";
 import { api, ApiError, API_BASE, Student } from "@/lib/api";
+import { resolveMediaUrl } from "@/lib/media-url";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -66,7 +67,7 @@ export default function ExamStudentsPage({ params }: { params: { classId: string
                   <div className="w-9 h-9 rounded-full bg-indigo/[0.08] text-indigo flex items-center justify-center overflow-hidden shrink-0">
                     {s.photo ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={`${API_BASE}${s.photo}`} alt="" className="w-full h-full object-cover" />
+                      <img src={resolveMediaUrl(s.photo)} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <GraduationCap size={16} />
                     )}

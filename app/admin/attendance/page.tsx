@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CalendarCheck, FileText, Trash2, Users2, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
-import { api, ApiError, SchoolClass, API_BASE } from "@/lib/api";
+import { api, ApiError, SchoolClass } from "@/lib/api";
+import { resolveMediaUrl } from "@/lib/media-url";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -136,7 +137,7 @@ export default function AttendancePage() {
     setGenerating(true);
     try {
       const { file } = await api.generateAttendancePdf(classId, weekDayKeys[0], weekDayKeys[4]);
-      window.open(`${API_BASE}${file}`, "_blank");
+      window.open(resolveMediaUrl(file), "_blank");
       showToast("Attendance PDF generated successfully.");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Failed to generate attendance PDF.", "error");
@@ -149,7 +150,7 @@ export default function AttendancePage() {
     setGeneratingTeacherPdf(true);
     try {
       const { file } = await api.generateTeacherAttendancePdf(weekDayKeys[0], weekDayKeys[4]);
-      window.open(`${API_BASE}${file}`, "_blank");
+      window.open(resolveMediaUrl(file), "_blank");
       showToast("Teacher attendance PDF generated successfully.");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Failed to generate teacher attendance PDF.", "error");

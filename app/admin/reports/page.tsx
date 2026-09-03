@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { FileText, Users, Files, Trash2, AlertTriangle } from "lucide-react";
-import { api, ApiError, SchoolClass, API_BASE } from "@/lib/api";
+import { api, ApiError, SchoolClass } from "@/lib/api";
+import { resolveMediaUrl } from "@/lib/media-url";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -57,7 +58,7 @@ export default function ReportsPage() {
     setGeneratingCombined(true);
     try {
       const { file } = await api.generateCombinedReport(classId);
-      window.open(`${API_BASE}${file}`, "_blank");
+      window.open(resolveMediaUrl(file), "_blank");
       showToast("Combined class report generated successfully.");
     } catch (err) {
       showToast(
@@ -177,7 +178,7 @@ export default function ReportsPage() {
                   return (
                     <a
                       key={path}
-                      href={`${API_BASE}${path}`}
+                      href={resolveMediaUrl(path)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 text-xs text-indigo hover:text-gold-dark transition-colors truncate"

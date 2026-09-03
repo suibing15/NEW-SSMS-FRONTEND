@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, FormEvent } from "react";
 import { Users, Search, Trash2, CreditCard, Plus, X, Ban, CheckCircle2, Lock, Unlock, Package } from "lucide-react";
 import { api, ApiError, Teacher, downloadBlob } from "@/lib/api";
+import { resolveMediaUrl } from "@/lib/media-url";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -312,7 +313,7 @@ export default function TeachersPage() {
                     {t.photo ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={`${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000"}${t.photo}`}
+                        src={resolveMediaUrl(t.photo)}
                         alt=""
                         className="w-full h-full object-cover"
                       />

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, GraduationCap, BookOpen, ChevronRight } from "lucide-react";
 import { api, API_BASE, Student } from "@/lib/api";
+import { resolveMediaUrl } from "@/lib/media-url";
 import { Card } from "@/components/ui/card";
 
 const TYPES: { key: string; label: string }[] = [
@@ -46,7 +47,7 @@ export default function ExamSubjectSelectPage({
           <div className="w-20 h-20 mx-auto rounded-full bg-indigo/[0.08] text-indigo flex items-center justify-center overflow-hidden border-2 border-gold/40">
             {student?.photo ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={`${API_BASE}${student.photo}`} alt="" className="w-full h-full object-cover" />
+              <img src={resolveMediaUrl(student.photo)} alt="" className="w-full h-full object-cover" />
             ) : (
               <GraduationCap size={30} />
             )}

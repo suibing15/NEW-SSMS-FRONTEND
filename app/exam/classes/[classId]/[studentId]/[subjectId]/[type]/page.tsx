@@ -10,6 +10,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { api, ApiError, API_BASE, Question } from "@/lib/api";
+import { resolveMediaUrl } from "@/lib/media-url";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FloatingCalculator } from "@/components/floating-calculator";
@@ -32,9 +33,12 @@ export default function TakeExamPage({
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [unansweredQids, setUnansweredQids] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ score: number; total: number; percentage: number } | null>(
-    null
-  );
+  const [result, setResult] = useState<{
+    score: number;
+    total: number;
+    percentage: number;
+    pdf: string | null;
+  } | null>(null);
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -128,7 +132,7 @@ export default function TakeExamPage({
     setSubmitting(true);
     try {
       const res = await api.submitExam(studentId, classId, subjectId, type, answers);
-      setResult({ score: res.score, total: res.total, percentage: res.percentage });
+      setResult({ score: res.score, total: res.total, percentage: res.percentage, pdf: res.pdf });
       setPhase("submitted");
     } catch (err) {
       setBlockedMessage(
@@ -197,6 +201,16 @@ export default function TakeExamPage({
             {result.score}/{result.total}
           </p>
           <p className="text-sm text-ink/55 mt-1">{result.percentage}%</p>
+          {result.pdf && (
+            <a
+              href={resolveMediaUrl(result.pdf)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-block text-sm font-medium text-indigo hover:text-gold-dark transition-colors underline underline-offset-2"
+            >
+              Download receipt
+            </a>
+          )}
           <Link
             href={`/exam/classes/${encodeURIComponent(classId)}/${encodeURIComponent(studentId)}`}
             className="mt-6 inline-block text-sm font-medium text-indigo hover:text-gold-dark transition-colors"
@@ -301,7 +315,7 @@ export default function TakeExamPage({
                 {q.image && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={`${API_BASE}${q.image}`}
+                    src={resolveMediaUrl(q.image)}
                     alt=""
                     className="mt-3 max-w-full rounded-[8px] border border-ink/[0.08]"
                   />

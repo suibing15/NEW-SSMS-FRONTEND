@@ -15,6 +15,7 @@ import {
   Skull,
 } from "lucide-react";
 import { api, ApiError, SchoolMeta, API_BASE } from "@/lib/api";
+import { resolveMediaUrl } from "@/lib/media-url";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -234,7 +235,7 @@ function BrandingSection({ meta, onSaved }: { meta: SchoolMeta; onSaved: () => v
           <p className="text-sm font-medium text-ink mb-2">🏫 School Logo / Crest</p>
           {meta.logo && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={`${API_BASE}${meta.logo}`} alt="Current logo" className="w-14 h-14 rounded-full object-cover mb-2 border border-ink/10" />
+            <img src={resolveMediaUrl(meta.logo)} alt="Current logo" className="w-14 h-14 rounded-full object-cover mb-2 border border-ink/10" />
           )}
           <input
             type="file"
@@ -248,7 +249,7 @@ function BrandingSection({ meta, onSaved }: { meta: SchoolMeta; onSaved: () => v
           <p className="text-sm font-medium text-ink mb-2">✍️ Principal&apos;s Signature</p>
           {meta.signaturePrincipal && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={`${API_BASE}${meta.signaturePrincipal}`} alt="Current signature" className="h-10 object-contain mb-2" />
+            <img src={resolveMediaUrl(meta.signaturePrincipal)} alt="Current signature" className="h-10 object-contain mb-2" />
           )}
           <input
             type="file"

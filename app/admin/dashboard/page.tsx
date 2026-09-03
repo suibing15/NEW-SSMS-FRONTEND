@@ -1,55 +1,93 @@
-import { GraduationCap, Users, BookOpen, Lock } from "lucide-react";
+"use client";
+
+// Converted from a Server Component to a Client Component.
+//
+// The original version ran on the Next.js server and read the login
+// session via cookies() from next/headers — but that only ever sees
+// cookies the browser attached to its request to the Next.js server's
+// OWN origin. The actual admin session cookie (school.sid) is set by
+// the separate Express backend, on ITS origin — a browser never
+// forwards one site's cookies to a different site during normal page
+// navigation. So this page always looked logged-out server-side, even
+// immediately after a real, successful login, and showed "Your admin
+// session isn't active" every time.
+//
+// Fetching client-side instead means the browser itself makes the
+// request, with credentials: "include" (already built into
+// lib/api.ts's request() helper) — exactly the same way the login
+// page's own fetch works, and exactly why every other admin page
+// (attendance, classes, students, teachers, reports, settings) was
+// already built this way and never had this bug.
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { GraduationCap, Users, BookOpen, Lock } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TopStudentsWidget } from "@/components/top-students-widget";
 import { api, ApiError, SchoolClass } from "@/lib/api";
-import { cookies } from "next/headers";
 
-async function getDashboardData() {
-  const cookieHeader = cookies().toString();
-  try {
-    const [{ classes }, { teachers }] = await Promise.all([
-      api.adminClasses(cookieHeader),
-      api.adminTeachers(cookieHeader),
-    ]);
+type ClassWithCount = SchoolClass & { studentCount: number };
 
-    const withCounts = await Promise.all(
-      classes.map(async (c) => {
-        try {
-          const { students } = await api.classStudents(c.id, cookieHeader);
-          return { ...c, studentCount: students.length };
-        } catch {
-          return { ...c, studentCount: 0 };
+export default function AdminDashboardPage() {
+  const [classes, setClasses] = useState<ClassWithCount[]>([]);
+  const [teacherCount, setTeacherCount] = useState(0);
+  const [totalStudents, setTotalStudents] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const [{ classes: rawClasses }, { teachers }] = await Promise.all([
+          api.adminClasses(),
+          api.adminTeachers(),
+        ]);
+
+        const withCounts = await Promise.all(
+          rawClasses.map(async (c) => {
+            try {
+              const { students } = await api.classStudents(c.id);
+              return { ...c, studentCount: students.length };
+            } catch {
+              return { ...c, studentCount: 0 };
+            }
+          })
+        );
+
+        if (cancelled) return;
+        setClasses(withCounts);
+        setTeacherCount(teachers.length);
+        setTotalStudents(withCounts.reduce((sum, c) => sum + c.studentCount, 0));
+        setError(null);
+      } catch (err) {
+        if (cancelled) return;
+        // A 401 here almost always means "please log in again", not
+        // "the server is offline" — shown as the real reason, not a
+        // guess, same as every other admin page already does.
+        let message = "Couldn't load the dashboard.";
+        if (err instanceof ApiError) {
+          message =
+            err.status === 401
+              ? "Your admin session isn't active. Please log in again."
+              : err.message;
         }
-      })
-    );
-
-    const totalStudents = withCounts.reduce((sum, c) => sum + c.studentCount, 0);
-
-    return { classes: withCounts, teachers, totalStudents, error: null as string | null };
-  } catch (err) {
-    // Show the real reason, not a guess — a 401 here almost always
-    // means "please log in again", not "the server is offline".
-    let message = "Couldn't load the dashboard.";
-    if (err instanceof ApiError) {
-      message =
-        err.status === 401
-          ? "Your admin session isn't active. Please log in again."
-          : err.message;
+        setClasses([]);
+        setTeacherCount(0);
+        setTotalStudents(0);
+        setError(message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
-    return {
-      classes: [] as (SchoolClass & { studentCount: number })[],
-      teachers: [],
-      totalStudents: 0,
-      error: message,
-    };
-  }
-}
 
-export default async function AdminDashboardPage() {
-  const { classes, teachers, totalStudents, error } = await getDashboardData();
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="p-8">
@@ -78,7 +116,7 @@ export default async function AdminDashboardPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
         <StatCard label="Students" value={totalStudents} icon={GraduationCap} accent="indigo" />
-        <StatCard label="Teachers" value={teachers.length} icon={Users} accent="gold" />
+        <StatCard label="Teachers" value={teacherCount} icon={Users} accent="gold" />
         <StatCard label="Classes" value={classes.length} icon={BookOpen} accent="sage" />
       </div>
 
@@ -88,7 +126,7 @@ export default async function AdminDashboardPage() {
           <span className="font-mono text-xs text-ink/40">{classes.length} total</span>
         </div>
         <div className="divide-y divide-ink/[0.06]">
-          {classes.length === 0 && !error && (
+          {!loading && classes.length === 0 && !error && (
             <p className="px-5 py-8 text-sm text-ink/45 text-center">
               No classes yet. Add one from Classes &amp; Subjects.
             </p>

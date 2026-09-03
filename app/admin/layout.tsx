@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieHeader = cookies().toString();
-  let schoolName = "Assalam International Academic School";
+  let schoolName = "School Portal";
   try {
     const { meta } = await api.meta(cookieHeader);
     if (meta.schoolName) schoolName = meta.schoolName;

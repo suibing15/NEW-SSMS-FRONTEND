@@ -15,7 +15,8 @@ import {
   Eye,
   Pencil,
 } from "lucide-react";
-import { api, ApiError, Subject, SchoolClass, Question, API_BASE } from "@/lib/api";
+import { api, ApiError, Subject, SchoolClass, Question } from "@/lib/api";
+import { resolveMediaUrl } from "@/lib/media-url";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -255,7 +256,7 @@ function QuestionsViewPanel({
     setGenerating(true);
     try {
       const { file } = await api.generateQuestionsPdf(classId, subject.id, activeType);
-      window.open(`${API_BASE}${file}`, "_blank");
+      window.open(resolveMediaUrl(file), "_blank");
       showToast("Question paper PDF generated successfully.");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Failed to generate PDF.", "error");

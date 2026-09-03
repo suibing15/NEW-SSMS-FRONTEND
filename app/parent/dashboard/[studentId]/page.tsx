@@ -12,6 +12,7 @@ import {
   History,
 } from "lucide-react";
 import { api, ApiError, API_BASE } from "@/lib/api";
+import { resolveMediaUrl } from "@/lib/media-url";
 import { formatDate } from "@/lib/format-date";
 import { Card } from "@/components/ui/card";
 
@@ -71,7 +72,7 @@ export default function ParentDashboardPage({ params }: { params: { studentId: s
             <div className="w-20 h-20 rounded-full bg-indigo/[0.08] text-indigo flex items-center justify-center overflow-hidden border-2 border-gold/40 shrink-0">
               {student.photo ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={`${API_BASE}${student.photo}`} alt="" className="w-full h-full object-cover" />
+                <img src={resolveMediaUrl(student.photo)} alt="" className="w-full h-full object-cover" />
               ) : (
                 <GraduationCap size={30} />
               )}
@@ -129,7 +130,7 @@ export default function ParentDashboardPage({ params }: { params: { studentId: s
               {data.individualSubmissions.map((sub, i) => (
                 <a
                   key={i}
-                  href={`${API_BASE}${sub.filePath}`}
+                  href={resolveMediaUrl(sub.filePath)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-between px-5 py-3 text-sm hover:bg-ink/[0.02] transition-colors"
@@ -183,7 +184,7 @@ function PdfRow({
       </div>
       {file ? (
         <a
-          href={`${API_BASE}${file.filePath}`}
+          href={resolveMediaUrl(file.filePath)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo hover:text-gold-dark transition-colors shrink-0"
