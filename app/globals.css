@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Fonts are loaded via the <link> tag in app/layout.tsx, not
+     next/font/google — these variables just point Tailwind's
+     fontFamily config at the actual font names that link loads. */
+  --font-fraunces: "Fraunces", serif;
+  --font-plex-sans: "IBM Plex Sans", sans-serif;
+  --font-plex-mono: "IBM Plex Mono", monospace;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: theme("colors.parchment.DEFAULT");
+    color: theme("colors.ink");
+  }
+  :focus-visible {
+    outline: 2px solid theme("colors.gold.DEFAULT");
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/*
+  Signature element: a perforated ticket-stub edge, echoing the exam
+  admission slips and ID cards this software actually produces. Used
+  on the portal-selection cards as a torn-edge divider between the
+  "label" zone and the "action" zone of each card.
+*/
+.ticket-notch {
+  position: relative;
+}
+.ticket-notch::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 64px;
+  height: 0;
+  border-top: 1.5px dashed rgba(15, 27, 51, 0.18);
+}
+.ticket-notch::after {
+  content: "";
+  position: absolute;
+  left: -9px;
+  right: -9px;
+  bottom: 58px;
+  height: 12px;
+  background-image: radial-gradient(
+    circle at 6px 6px,
+    theme("colors.parchment.DEFAULT") 6px,
+    transparent 6.5px
+  );
+  background-size: 18px 12px;
+  background-repeat: repeat-x;
+}
