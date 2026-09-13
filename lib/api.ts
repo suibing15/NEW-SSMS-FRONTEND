@@ -198,6 +198,18 @@ export const api = {
       body: JSON.stringify({ studentIds }),
     }),
 
+  // Resets every student in the given classes to a fresh, random CBT
+  // password and returns one PDF listing each class's students with
+  // their real (plaintext) password and the principal's signature.
+  // This is a genuine password reset, not a lookup — a student's old
+  // password can never be recovered once hashed, so calling this is
+  // the only way to "know" a class's passwords again.
+  resetCbtCredentials: (classIds: string[]) =>
+    requestBlob("/api/admin/students/reset-cbt-credentials", {
+      method: "POST",
+      body: JSON.stringify({ classIds }),
+    }),
+
   // ---- Teachers ----
   addTeacher: (formData: FormData) =>
     requestForm<{ success: boolean; generatedPassword?: string }>("/api/admin/teacher", formData),

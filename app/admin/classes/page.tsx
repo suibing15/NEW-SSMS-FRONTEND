@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState, FormEvent } from "react";
 import Link from "next/link";
-import { BookOpen, Plus, Trash2, Lock, Unlock, ChevronRight, GraduationCap } from "lucide-react";
-import { api, ApiError, SchoolClass } from "@/lib/api";
+import { BookOpen, Plus, Trash2, Lock, Unlock, ChevronRight, GraduationCap, KeyRound } from "lucide-react";
+import { api, ApiError, SchoolClass, downloadBlob } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,9 @@ export default function ClassesPage() {
   const [promoteFrom, setPromoteFrom] = useState("");
   const [promoteTo, setPromoteTo] = useState("");
   const [promoting, setPromoting] = useState(false);
+  const [showCbtForm, setShowCbtForm] = useState(false);
+  const [cbtSelectedIds, setCbtSelectedIds] = useState<string[]>([]);
+  const [resettingCbt, setResettingCbt] = useState(false);
 
   async function loadAll() {
     setLoading(true);
@@ -122,6 +125,37 @@ export default function ClassesPage() {
     }
   }
 
+  function toggleCbtClass(id: string) {
+    setCbtSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  async function handleResetCbtCredentials() {
+    if (!cbtSelectedIds.length) return;
+    const names = classes.filter((c) => cbtSelectedIds.includes(c.id)).map((c) => c.name);
+    const totalStudents = classes
+      .filter((c) => cbtSelectedIds.includes(c.id))
+      .reduce((sum, c) => sum + c.studentCount, 0);
+    if (
+      !confirm(
+        `Reset CBT passwords for ${totalStudents} student(s) across ${names.join(", ")}? ` +
+          `This replaces every one of their current passwords with a new one — anyone who already knows their old password will need the printed sheet to log in again. This cannot be undone.`
+      )
+    )
+      return;
+    setResettingCbt(true);
+    try {
+      const blob = await api.resetCbtCredentials(cbtSelectedIds);
+      downloadBlob(blob, "CBT_Credentials.pdf");
+      showToast(`CBT credentials reset and printed for ${totalStudents} student(s).`);
+      setShowCbtForm(false);
+      setCbtSelectedIds([]);
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Failed to reset CBT credentials.", "error");
+    } finally {
+      setResettingCbt(false);
+    }
+  }
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
@@ -133,11 +167,66 @@ export default function ClassesPage() {
           <Button variant="secondary" onClick={() => setShowPromoteForm((v) => !v)}>
             <GraduationCap size={16} /> Promote Students
           </Button>
+          <Button variant="secondary" onClick={() => setShowCbtForm((v) => !v)}>
+            <KeyRound size={16} /> CBT Credentials
+          </Button>
           <Button onClick={() => setShowAddForm((v) => !v)}>
             <Plus size={16} /> Add Class
           </Button>
         </div>
       </div>
+
+      {showCbtForm && (
+        <Card className="p-5 mb-6">
+          <h2 className="font-display font-semibold text-ink mb-1">Reset &amp; print CBT credentials</h2>
+          <p className="text-xs text-ink/50 mb-4">
+            Generates a fresh, random CBT password for every student in the classes you pick below, saves
+            it securely, and gives you one PDF listing each class&apos;s students with their real password
+            and the principal&apos;s signature — so no one needs to ask a student what their password is.
+            This replaces their current password; it can&apos;t be undone.
+          </p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {classes.map((c) => {
+              const checked = cbtSelectedIds.includes(c.id);
+              return (
+                <label
+                  key={c.id}
+                  className={`flex items-center gap-2 rounded-[8px] border px-3 py-2 text-sm cursor-pointer transition-colors ${
+                    checked ? "border-indigo bg-indigo/[0.06] text-indigo" : "border-ink/15 text-ink/70"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleCbtClass(c.id)}
+                    className="accent-indigo"
+                  />
+                  {c.name} ({c.studentCount})
+                </label>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => setCbtSelectedIds(classes.map((c) => c.id))}
+              disabled={resettingCbt}
+            >
+              Select all
+            </Button>
+            <Button variant="ghost" onClick={() => setCbtSelectedIds([])} disabled={resettingCbt}>
+              Clear
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleResetCbtCredentials}
+              disabled={!cbtSelectedIds.length || resettingCbt}
+            >
+              {resettingCbt ? "Generating…" : "Reset & print credentials"}
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {showPromoteForm && (
         <Card className="p-5 mb-6">
