@@ -269,6 +269,24 @@ export const api = {
       { method: "DELETE" }
     ),
 
+  // Empties every subject's question bank for a class (subjects themselves
+  // stay). `confirmation` must exactly match the class's own name — enforced
+  // again server-side, this is not just a client-side gate.
+  deleteAllQuestions: (classId: string, confirmation: string) =>
+    request<{ success: boolean; subjectsAffected: number; questionsDeleted: number; imagesDeleted: number }>(
+      `/api/admin/class/${encodeURIComponent(classId)}/questions/all`,
+      { method: "DELETE", body: JSON.stringify({ confirmation }) }
+    ),
+
+  // Removes every subject in a class entirely, along with this class's
+  // existing test/exam results — a genuine clean slate for a new term.
+  // Same class-name confirmation as deleteAllQuestions above.
+  deleteAllSubjects: (classId: string, confirmation: string) =>
+    request<{ success: boolean; subjectsDeleted: number; resultsDeleted: number; imagesDeleted: number }>(
+      `/api/admin/class/${encodeURIComponent(classId)}/subjects/all`,
+      { method: "DELETE", body: JSON.stringify({ confirmation }) }
+    ),
+
   // ---- Bulk question upload (CSV/Excel + optional images) ----
   bulkUploadQuestions: (formData: FormData) =>
     requestForm<{

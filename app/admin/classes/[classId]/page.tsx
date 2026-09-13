@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useRef, useState, FormEvent } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -38,6 +38,11 @@ export default function ClassSubjectsPage({ params }: { params: { classId: strin
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [expandedPanel, setExpandedPanel] = useState<{ subjectId: string; panel: string } | null>(null);
+  const [resetConfirmText, setResetConfirmText] = useState("");
+  const [resetting, setResetting] = useState(false);
+
+  const currentClassName = allClasses.find((c) => c.id === classId)?.name || "";
+  const resetConfirmMatches = resetConfirmText.length > 0 && resetConfirmText === currentClassName;
 
   async function loadSubjects() {
     setLoading(true);
@@ -92,6 +97,42 @@ export default function ClassSubjectsPage({ params }: { params: { classId: strin
       loadSubjects();
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Failed to delete subject.", "error");
+    }
+  }
+
+  async function handleDeleteAllQuestions() {
+    if (!resetConfirmMatches) return;
+    setResetting(true);
+    try {
+      const j = await api.deleteAllQuestions(classId, resetConfirmText);
+      showToast(`Cleared ${j.questionsDeleted} question(s) across ${j.subjectsAffected} subject(s).`);
+      setResetConfirmText("");
+      loadSubjects();
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Failed to delete all questions.", "error");
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  async function handleDeleteAllSubjects() {
+    if (!resetConfirmMatches) return;
+    if (
+      !confirm(
+        "This also clears this class's existing test/exam scores, not just its subjects. Continue?"
+      )
+    )
+      return;
+    setResetting(true);
+    try {
+      const j = await api.deleteAllSubjects(classId, resetConfirmText);
+      showToast(`Deleted ${j.subjectsDeleted} subject(s) and ${j.resultsDeleted} result(s).`);
+      setResetConfirmText("");
+      loadSubjects();
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Failed to delete all subjects.", "error");
+    } finally {
+      setResetting(false);
     }
   }
 
@@ -153,6 +194,41 @@ export default function ClassSubjectsPage({ params }: { params: { classId: strin
           </form>
         </Card>
       )}
+
+      <Card className="p-5 mb-6">
+        <h2 className="font-display font-semibold text-ink mb-1">
+          Fresh term reset — {currentClassName || classId}
+        </h2>
+        <p className="text-xs text-ink/50 mb-3">
+          Type this class&apos;s exact name below to enable these buttons. &quot;Delete All
+          Questions&quot; empties every subject&apos;s question bank but keeps the subjects
+          themselves. &quot;Delete All Subjects&quot; removes the subjects entirely and clears
+          this class&apos;s existing test/exam scores too — a genuinely clean slate for a new
+          term. Neither can be undone.
+        </p>
+        <input
+          value={resetConfirmText}
+          onChange={(e) => setResetConfirmText(e.target.value)}
+          placeholder={`Type "${currentClassName || "class name"}" to confirm`}
+          className="w-full max-w-xs rounded-[8px] border border-ink/15 px-3 py-2 text-sm mb-3 focus:border-indigo focus:outline-none focus:ring-2 focus:ring-indigo/15"
+        />
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="secondary"
+            onClick={handleDeleteAllQuestions}
+            disabled={!resetConfirmMatches || resetting}
+          >
+            Delete All Questions
+          </Button>
+          <Button
+            variant="danger"
+            onClick={handleDeleteAllSubjects}
+            disabled={!resetConfirmMatches || resetting}
+          >
+            Delete All Subjects (+ Results)
+          </Button>
+        </div>
+      </Card>
 
       {error && (
         <Card className="p-4 mb-6 border-clay/30 bg-clay/[0.04]">
@@ -602,9 +678,24 @@ function AddQuestionPanel({
 }) {
   const { showToast } = useToast();
   const [submitting, setSubmitting] = useState(false);
+  // React state updates aren't instant — disabled={submitting} only
+  // takes effect once the component actually re-renders, which is a
+  // moment too late for a fast double-click: both click events can
+  // fire before the button visually disables. A plain variable
+  // checked synchronously at the very top of handleSubmit closes that
+  // gap completely, since it updates the instant it's assigned, not
+  // on the next render. This is what was producing "added
+  // successfully" and "failed to add" together: the first click
+  // genuinely succeeded and reset the form, and the second click's
+  // handler — already in flight — then read that just-reset (now
+  // empty) form and submitted blank required fields, which the
+  // backend correctly rejected as a separate, later failure.
+  const submittingRef = useRef(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const fd = new FormData(e.currentTarget);
     setSubmitting(true);
     try {
@@ -625,6 +716,7 @@ function AddQuestionPanel({
       showToast(err instanceof ApiError ? err.message : "Failed to add question.", "error");
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   }
 
