@@ -250,8 +250,8 @@ export default function ClassSubjectsPage({ params }: { params: { classId: strin
             expandedPanel?.subjectId === subj.id && expandedPanel?.panel === p;
           return (
             <Card key={subj.id} className="overflow-hidden">
-              <div className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
-                <div className="min-w-0">
+              <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="min-w-0 flex-1">
                   <p className="font-display font-semibold text-ink">{subj.name}</p>
                   <div className="flex items-center gap-3 mt-1 flex-wrap">
                     <span className="font-mono text-xs text-ink/40">{subj.id}</span>

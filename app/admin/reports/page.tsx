@@ -210,16 +210,21 @@ export default function ReportsPage() {
       )}
 
       <Card className="p-5 border-clay/30 bg-clay/[0.03]">
-        <div className="flex items-start gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-3">
           <AlertTriangle size={18} className="text-clay shrink-0 mt-0.5" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="font-medium text-ink">Delete all report data</p>
             <p className="text-xs text-ink/55 mt-1">
               Erases every student&apos;s results across the entire school, and every generated
               report PDF file. Not limited to one class. This cannot be undone.
             </p>
           </div>
-          <Button variant="danger" onClick={handleDeleteAll} disabled={deletingAll}>
+          <Button
+            variant="danger"
+            onClick={handleDeleteAll}
+            disabled={deletingAll}
+            className="w-full sm:w-auto justify-center"
+          >
             <Trash2 size={14} /> {deletingAll ? "Deleting…" : "Delete everything"}
           </Button>
         </div>

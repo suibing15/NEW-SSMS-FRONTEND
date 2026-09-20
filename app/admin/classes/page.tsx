@@ -336,15 +336,15 @@ export default function ClassesPage() {
           )}
           {!loading &&
             classes.map((c) => (
-              <div key={c.id} className="px-5 py-3.5 flex items-center justify-between gap-4">
+              <div key={c.id} className="px-5 py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <Link
                   href={`/admin/classes/${encodeURIComponent(c.id)}`}
-                  className="flex items-center gap-3 min-w-0 group"
+                  className="flex items-center gap-3 min-w-0 flex-1 group"
                 >
                   <div className="w-9 h-9 rounded-full bg-indigo/[0.08] text-indigo flex items-center justify-center shrink-0">
                     <BookOpen size={16} />
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-ink truncate group-hover:text-indigo transition-colors">
                       {c.name}
                     </p>
@@ -361,7 +361,7 @@ export default function ClassesPage() {
                     </div>
                   </div>
                 </Link>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
                   <Button size="sm" variant={c.locked ? "secondary" : "ghost"} onClick={() => handleToggleLock(c)}>
                     {c.locked ? <Unlock size={14} /> : <Lock size={14} />}
                     {c.locked ? "Unlock" : "Lock"}
