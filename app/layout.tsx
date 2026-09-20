@@ -1,6 +1,17 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { api } from "@/lib/api";
+
+// Explicit rather than relying on Next.js's own default — width tied
+// to the device's actual screen width, initial-scale 1 so nothing
+// starts zoomed in or out on load. This is what "no zooming needed"
+// actually depends on; the admin panel's own layout fix (a proper
+// mobile drawer instead of a permanently fixed-width sidebar) is what
+// makes the content itself actually fit that width once this is set.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 // Previously a fixed, hardcoded title naming one specific school —
 // this frontend serves any school's backend, so the browser tab title

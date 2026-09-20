@@ -25,7 +25,23 @@ const navItems = [
   { href: "/admin/settings", label: "School Settings", icon: Settings },
 ];
 
-export function Sidebar({ schoolName }: { schoolName: string }) {
+// mobileOpen/onClose are only meaningful below the md breakpoint — on
+// desktop the sidebar is always visible exactly as it always was,
+// these props simply have no effect there. Below md, the sidebar was
+// previously still rendered at a fixed w-60 (240px), permanently
+// eating into a phone-width screen and forcing the whole layout wider
+// than the viewport — which is what made every admin page need
+// pinch-zooming to use at all, unlike every other portal, which never
+// carries a permanent side rail like this in the first place.
+export function Sidebar({
+  schoolName,
+  mobileOpen = false,
+  onClose,
+}: {
+  schoolName: string;
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}) {
   const pathname = usePathname();
 
   async function handleSignOut() {
@@ -43,7 +59,19 @@ export function Sidebar({ schoolName }: { schoolName: string }) {
   }
 
   return (
-    <aside className="w-60 shrink-0 bg-indigo-dark text-parchment flex flex-col min-h-screen">
+    <aside
+      className={cn(
+        "w-60 shrink-0 bg-indigo-dark text-parchment flex flex-col min-h-screen",
+        // Below md: an off-canvas drawer, fixed to the viewport and
+        // slid fully out of view by default — translate-x-0 when
+        // mobileOpen brings it on screen, sliding back out on close.
+        // At md and up: back to being a normal, always-visible, static
+        // (non-fixed) column exactly as this always was on desktop.
+        "fixed inset-y-0 left-0 z-50 transition-transform duration-200 ease-out",
+        mobileOpen ? "translate-x-0" : "-translate-x-full",
+        "md:static md:translate-x-0"
+      )}
+    >
       <div className="px-5 py-5 border-b border-parchment/10">
         <p className="font-mono text-[10px] tracking-widest uppercase text-parchment/50">
           Admin Panel
@@ -53,13 +81,14 @@ export function Sidebar({ schoolName }: { schoolName: string }) {
         </p>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
           const active = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={cn(
                 "flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-sm font-medium transition-colors",
                 active
