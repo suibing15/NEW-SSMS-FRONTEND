@@ -622,18 +622,42 @@ function ForwardPanel({
   async function handleForward() {
     if (!target) return;
     const targetName = allClasses.find((c) => c.id === target)?.name || target;
-    if (
-      !confirm(
-        `Copy all of ${subject.name}'s questions into ${targetName}? If that class already has this subject, its questions will be replaced.`
-      )
-    )
-      return;
     setForwarding(true);
     try {
+      // First attempt without confirmOverwrite — the common, safe case
+      // (an empty or non-existent target subject) succeeds immediately
+      // with no alarming prompt at all, since there's genuinely nothing
+      // to lose. A prompt on every single forward, safe or not, is
+      // exactly what trains people to stop reading it.
       await api.forwardQuestions(classId, target, subject.id);
       showToast(`Questions forwarded to ${targetName} successfully.`);
     } catch (err) {
-      showToast(err instanceof ApiError ? err.message : "Failed to forward questions.", "error");
+      if (err instanceof ApiError && err.status === 409) {
+        const body = err.body as { totalExisting?: number; existingCounts?: Record<string, number> } | null;
+        const total = body?.totalExisting ?? 0;
+        const breakdown = body?.existingCounts
+          ? Object.entries(body.existingCounts)
+              .filter(([, n]) => n > 0)
+              .map(([type, n]) => `${n} ${type}`)
+              .join(", ")
+          : "";
+        const proceed = confirm(
+          `${targetName} already has ${total} question(s) in ${subject.name}${breakdown ? ` (${breakdown})` : ""}. ` +
+            `Forwarding will REPLACE ALL of them with ${subject.name}'s questions from this class. This cannot be undone. Continue?`
+        );
+        if (!proceed) {
+          setForwarding(false);
+          return;
+        }
+        try {
+          await api.forwardQuestions(classId, target, subject.id, true);
+          showToast(`Questions forwarded to ${targetName} successfully.`);
+        } catch (retryErr) {
+          showToast(retryErr instanceof ApiError ? retryErr.message : "Failed to forward questions.", "error");
+        }
+      } else {
+        showToast(err instanceof ApiError ? err.message : "Failed to forward questions.", "error");
+      }
     } finally {
       setForwarding(false);
     }

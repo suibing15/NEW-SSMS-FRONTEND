@@ -60,9 +60,17 @@ export type Student = {
 
 class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  // The full error response body, when the server sent one — several
+  // routes include useful detail beyond the top-level message, like a
+  // skipReasons array (bulk uploads) or existingCounts (forwarding
+  // questions into a class that already has some) naming exactly what
+  // happened. Without this, that detail was silently discarded the
+  // moment a request failed, leaving only a generic message.
+  body: unknown;
+  constructor(message: string, status: number, body: unknown = null) {
     super(message);
     this.status = status;
+    this.body = body;
   }
 }
 
@@ -80,7 +88,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const body = isJson ? await res.json() : null;
 
   if (!res.ok) {
-    throw new ApiError(body?.error || `Request failed (${res.status})`, res.status);
+    throw new ApiError(body?.error || `Request failed (${res.status})`, res.status, body);
   }
   return body as T;
 }
@@ -105,7 +113,7 @@ async function requestForm<T>(path: string, formData: FormData, method = "POST")
   const isJson = res.headers.get("content-type")?.includes("application/json");
   const body = isJson ? await res.json() : null;
   if (!res.ok) {
-    throw new ApiError(body?.error || `Request failed (${res.status})`, res.status);
+    throw new ApiError(body?.error || `Request failed (${res.status})`, res.status, body);
   }
   return body as T;
 }
@@ -120,11 +128,12 @@ async function requestBlob(path: string, options: RequestInit = {}): Promise<Blo
   });
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
+    let body: unknown = null;
     try {
-      const body = await res.json();
-      message = body?.error || message;
+      body = await res.json();
+      message = (body as { error?: string })?.error || message;
     } catch {}
-    throw new ApiError(message, res.status);
+    throw new ApiError(message, res.status, body);
   }
   return res.blob();
 }
@@ -362,10 +371,16 @@ export const api = {
     return requestForm<{ success: boolean }>("/api/admin/question", formData);
   },
 
-  forwardQuestions: (fromClass: string, toClass: string, subjectId: string) =>
+  // confirmOverwrite defaults to false — the backend now refuses to
+  // silently replace an existing target subject's questions unless
+  // this is explicitly true. First call omits it; if the response is
+  // a 409 with requiresConfirmation, the caller shows the specific
+  // counts from err.body and retries with confirmOverwrite: true only
+  // if the admin explicitly agrees.
+  forwardQuestions: (fromClass: string, toClass: string, subjectId: string, confirmOverwrite = false) =>
     request<{ success: boolean }>("/api/admin/questions/forward", {
       method: "POST",
-      body: JSON.stringify({ fromClass, toClass, subjectId }),
+      body: JSON.stringify({ fromClass, toClass, subjectId, confirmOverwrite }),
     }),
 
   // ---- Promote students ----
