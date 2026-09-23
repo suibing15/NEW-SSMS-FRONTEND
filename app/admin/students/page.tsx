@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, FormEvent } from "react";
-import { GraduationCap, Search, Trash2, CreditCard, Plus, X, Package, Receipt, UploadCloud, ChevronDown, ChevronUp } from "lucide-react";
+import { GraduationCap, Search, Trash2, CreditCard, Plus, X, Package, Receipt, UploadCloud, ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import { api, ApiError, Student, SchoolClass, downloadBlob } from "@/lib/api";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { Card } from "@/components/ui/card";
@@ -30,6 +30,9 @@ export default function StudentsPage() {
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
   const [bulkCredentials, setBulkCredentials] = useState<{ id: string; name: string; password: string }[]>([]);
   const [justCreated, setJustCreated] = useState<{ id: string; password: string } | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editPasswordResult, setEditPasswordResult] = useState<{ id: string; password: string } | null>(null);
 
   async function loadAll() {
     setLoading(true);
@@ -119,6 +122,29 @@ export default function StudentsPage() {
       loadAll();
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Failed to add student.", "error");
+    }
+  }
+
+  async function handleUpdateStudent(e: FormEvent<HTMLFormElement>, currentId: string) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    // An empty ID field means "leave it as-is" — the backend only
+    // renames when newId is present, non-empty, and actually different,
+    // so this is safe to always send.
+    setSavingEdit(true);
+    try {
+      const result = await api.updateStudent(currentId, formData);
+      if (result.generatedPassword) {
+        setEditPasswordResult({ id: result.id, password: result.generatedPassword });
+      }
+      showToast("Student updated successfully.");
+      setEditingId(null);
+      loadAll();
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Failed to update student.", "error");
+    } finally {
+      setSavingEdit(false);
     }
   }
 
@@ -259,6 +285,24 @@ export default function StudentsPage() {
               <X size={16} />
             </button>
           </div>
+        </Card>
+      )}
+
+      {editPasswordResult && (
+        <Card className="p-4 mb-6 border-gold/40 bg-gold/[0.06] flex items-center justify-between gap-4">
+          <p className="text-sm text-ink">
+            Password changed for <span className="font-mono font-medium">{editPasswordResult.id}</span>.
+            New password: <span className="font-mono font-semibold">{editPasswordResult.password}</span>
+            <br />
+            <span className="text-ink/50">Write this down now, it won&apos;t be shown again.</span>
+          </p>
+          <button
+            onClick={() => setEditPasswordResult(null)}
+            className="text-ink/40 hover:text-ink transition-colors shrink-0"
+            aria-label="Dismiss"
+          >
+            <X size={16} />
+          </button>
         </Card>
       )}
 
@@ -523,43 +567,116 @@ export default function StudentsPage() {
           )}
           {!loading &&
             filtered.map((s) => (
-              <div key={s.id} className="px-5 py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(s.id)}
-                    onChange={() => toggleOne(s.id)}
-                    className="w-4 h-4 accent-indigo shrink-0"
-                    aria-label={`Select ${s.name}`}
-                  />
-                  <div className="w-9 h-9 rounded-full bg-indigo/[0.08] text-indigo flex items-center justify-center shrink-0 overflow-hidden">
-                    {s.photo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={resolveMediaUrl(s.photo)}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <GraduationCap size={16} />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-ink truncate">{s.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="font-mono text-xs text-ink/40">{s.id}</span>
-                      <Badge tone="neutral">{s.className}</Badge>
+              <div key={s.id}>
+                <div className="px-5 py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(s.id)}
+                      onChange={() => toggleOne(s.id)}
+                      className="w-4 h-4 accent-indigo shrink-0"
+                      aria-label={`Select ${s.name}`}
+                    />
+                    <div className="w-9 h-9 rounded-full bg-indigo/[0.08] text-indigo flex items-center justify-center shrink-0 overflow-hidden">
+                      {s.photo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={resolveMediaUrl(s.photo)}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <GraduationCap size={16} />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-ink truncate">{s.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="font-mono text-xs text-ink/40">{s.id}</span>
+                        <Badge tone="neutral">{s.className}</Badge>
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setEditingId((cur) => (cur === s.id ? null : s.id))}
+                    >
+                      <Pencil size={14} /> Edit
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => handleDownloadCard(s.id)}>
+                      <CreditCard size={14} /> ID Card
+                    </Button>
+                    <Button size="sm" variant="danger" onClick={() => handleDelete(s.id)}>
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                  <Button size="sm" variant="secondary" onClick={() => handleDownloadCard(s.id)}>
-                    <CreditCard size={14} /> ID Card
-                  </Button>
-                  <Button size="sm" variant="danger" onClick={() => handleDelete(s.id)}>
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
+
+                {editingId === s.id && (
+                  <form
+                    onSubmit={(e) => handleUpdateStudent(e, s.id)}
+                    className="px-5 pb-4 pt-1 bg-ink/[0.015] grid grid-cols-1 sm:grid-cols-2 gap-4"
+                  >
+                    <div>
+                      <label className="block text-xs font-medium text-ink/60 mb-1.5">
+                        Student ID
+                      </label>
+                      <input
+                        name="newId"
+                        defaultValue={s.id}
+                        className="w-full rounded-[8px] border border-ink/15 px-3 py-2 text-sm focus:border-indigo focus:outline-none focus:ring-2 focus:ring-indigo/15"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-ink/60 mb-1.5">Full name</label>
+                      <input
+                        name="name"
+                        defaultValue={s.name}
+                        required
+                        className="w-full rounded-[8px] border border-ink/15 px-3 py-2 text-sm focus:border-indigo focus:outline-none focus:ring-2 focus:ring-indigo/15"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-ink/60 mb-1.5">Class</label>
+                      <select
+                        name="classId"
+                        defaultValue={s.classId}
+                        className="w-full rounded-[8px] border border-ink/15 px-3 py-2 text-sm focus:border-indigo focus:outline-none focus:ring-2 focus:ring-indigo/15"
+                      >
+                        {classes.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-ink/60 mb-1.5">
+                        New password <span className="text-ink/35">(leave blank to keep it unchanged)</span>
+                      </label>
+                      <input
+                        name="password"
+                        className="w-full rounded-[8px] border border-ink/15 px-3 py-2 text-sm focus:border-indigo focus:outline-none focus:ring-2 focus:ring-indigo/15"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-medium text-ink/60 mb-1.5">
+                        Replace photo <span className="text-ink/35">(optional)</span>
+                      </label>
+                      <input name="photo" type="file" accept="image/*" className="text-sm" />
+                    </div>
+                    <div className="sm:col-span-2 flex items-center gap-2 pt-1">
+                      <Button type="submit" disabled={savingEdit}>
+                        {savingEdit ? "Saving…" : "Save changes"}
+                      </Button>
+                      <Button type="button" variant="ghost" onClick={() => setEditingId(null)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                )}
               </div>
             ))}
         </div>

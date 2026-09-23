@@ -21,6 +21,9 @@ export default function ClassesPage() {
   const [promoteFrom, setPromoteFrom] = useState("");
   const [promoteTo, setPromoteTo] = useState("");
   const [promoting, setPromoting] = useState(false);
+  const [promoteFromStudents, setPromoteFromStudents] = useState<{ id: string; name: string }[]>([]);
+  const [promoteSelectedIds, setPromoteSelectedIds] = useState<string[]>([]);
+  const [loadingPromoteStudents, setLoadingPromoteStudents] = useState(false);
   const [showCbtForm, setShowCbtForm] = useState(false);
   const [cbtSelectedIds, setCbtSelectedIds] = useState<string[]>([]);
   const [resettingCbt, setResettingCbt] = useState(false);
@@ -104,25 +107,60 @@ export default function ClassesPage() {
     if (!promoteFrom || !promoteTo) return;
     const fromName = classes.find((c) => c.id === promoteFrom)?.name || promoteFrom;
     const toName = classes.find((c) => c.id === promoteTo)?.name || promoteTo;
+    // Nothing checked falls back to "the whole class" — same behavior
+    // as before this feature existed, so an admin who never touches a
+    // checkbox sees no change at all. Checking specific students
+    // narrows it to just them.
+    const usingSubset = promoteSelectedIds.length > 0;
+    const count = usingSubset ? promoteSelectedIds.length : promoteFromStudents.length;
     if (
       !confirm(
-        `Promote every student in ${fromName} to ${toName}? Their results and report sheets stay with the class they came from, only their current class changes. This cannot be undone.`
+        `Promote ${usingSubset ? `${count} selected student(s)` : `every student (${count})`} in ${fromName} to ${toName}? ` +
+          `Their results and report sheets stay with the class they came from, only their current class changes. This cannot be undone.`
       )
     )
       return;
     setPromoting(true);
     try {
-      const { count } = await api.promoteStudents(promoteFrom, promoteTo);
-      showToast(`Promoted ${count} student(s) from ${fromName} to ${toName} successfully.`);
+      const { count: promotedCount } = await api.promoteStudents(
+        promoteFrom,
+        promoteTo,
+        usingSubset ? promoteSelectedIds : undefined
+      );
+      showToast(`Promoted ${promotedCount} student(s) from ${fromName} to ${toName} successfully.`);
       setShowPromoteForm(false);
       setPromoteFrom("");
       setPromoteTo("");
+      setPromoteFromStudents([]);
+      setPromoteSelectedIds([]);
       loadAll();
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Failed to promote students.", "error");
     } finally {
       setPromoting(false);
     }
+  }
+
+  // Re-fetches whenever the "from" class changes, and clears any
+  // previous selection — otherwise a student checked while looking at
+  // one class could stay silently checked after switching to another.
+  useEffect(() => {
+    if (!promoteFrom) {
+      setPromoteFromStudents([]);
+      setPromoteSelectedIds([]);
+      return;
+    }
+    setPromoteSelectedIds([]);
+    setLoadingPromoteStudents(true);
+    api
+      .adminClassStudents(promoteFrom)
+      .then(({ students }) => setPromoteFromStudents(students))
+      .catch(() => setPromoteFromStudents([]))
+      .finally(() => setLoadingPromoteStudents(false));
+  }, [promoteFrom]);
+
+  function togglePromoteStudent(id: string) {
+    setPromoteSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
   function toggleCbtClass(id: string) {
@@ -272,6 +310,52 @@ export default function ClassesPage() {
               {promoting ? "Promoting…" : "Promote"}
             </Button>
           </div>
+
+          {promoteFrom && (
+            <div className="mt-4 border-t border-ink/[0.06] pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-medium text-ink/60">
+                  Leave nothing checked to promote the whole class, or pick specific students below.
+                </p>
+                {promoteFromStudents.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPromoteSelectedIds((prev) =>
+                        prev.length === promoteFromStudents.length ? [] : promoteFromStudents.map((s) => s.id)
+                      )
+                    }
+                    className="text-xs font-medium text-indigo hover:text-gold-dark transition-colors shrink-0"
+                  >
+                    {promoteSelectedIds.length === promoteFromStudents.length ? "Clear all" : "Select all"}
+                  </button>
+                )}
+              </div>
+              {loadingPromoteStudents && <p className="text-xs text-ink/40">Loading students…</p>}
+              {!loadingPromoteStudents && promoteFromStudents.length === 0 && (
+                <p className="text-xs text-ink/40">No students in this class.</p>
+              )}
+              {!loadingPromoteStudents && promoteFromStudents.length > 0 && (
+                <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
+                  {promoteFromStudents.map((s) => (
+                    <label
+                      key={s.id}
+                      className="flex items-center gap-2 text-sm px-2 py-1.5 rounded-[6px] hover:bg-ink/[0.03] cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={promoteSelectedIds.includes(s.id)}
+                        onChange={() => togglePromoteStudent(s.id)}
+                        className="w-4 h-4 accent-indigo shrink-0"
+                      />
+                      <span className="text-ink">{s.name}</span>
+                      <span className="font-mono text-xs text-ink/40">({s.id})</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       )}
 

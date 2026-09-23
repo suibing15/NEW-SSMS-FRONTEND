@@ -187,6 +187,17 @@ export const api = {
   addStudent: (formData: FormData) =>
     requestForm<{ success: boolean; generatedPassword?: string }>("/api/admin/student", formData),
 
+  // Editing supports changing the student's own ID (newId, optional) —
+  // the backend updates every place that references the old ID
+  // (results, pdfs, attendance) so nothing gets orphaned. Any field
+  // left out of formData is left unchanged server-side.
+  updateStudent: (currentId: string, formData: FormData) =>
+    requestForm<{ success: boolean; id: string; generatedPassword?: string }>(
+      `/api/admin/student/${encodeURIComponent(currentId)}`,
+      formData,
+      "PUT"
+    ),
+
   deleteStudent: (id: string) =>
     request<{ success: boolean }>(`/api/admin/student/${encodeURIComponent(id)}`, { method: "DELETE" }),
 
@@ -384,10 +395,13 @@ export const api = {
     }),
 
   // ---- Promote students ----
-  promoteStudents: (fromClass: string, toClass: string) =>
+  // studentIds is optional — omitted, this promotes every student in
+  // fromClass (the original, unchanged behavior); provided, only those
+  // specific students move.
+  promoteStudents: (fromClass: string, toClass: string, studentIds?: string[]) =>
     request<{ success: boolean; count: number }>("/api/admin/students/promote", {
       method: "POST",
-      body: JSON.stringify({ fromClass, toClass }),
+      body: JSON.stringify({ fromClass, toClass, studentIds }),
     }),
 
   // ---- Bulk receipts ----
