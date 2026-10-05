@@ -7,6 +7,19 @@
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
+// Maximum mark per assessment, configurable per school (default
+// 10/10/10/70). A value of 0 means that assessment isn't used.
+export type ScoreField = "test1" | "test2" | "test3" | "exam";
+export type ScoreCaps = Record<ScoreField, number>;
+export const DEFAULT_SCORE_CAPS: ScoreCaps = { test1: 10, test2: 10, test3: 10, exam: 70 };
+
+export type ClassCompletion = {
+  subjects: { id: string; name: string; missing: number; expected: number }[];
+  totalMissing: number;
+  allComplete: boolean;
+  hasSignature: boolean;
+};
+
 export type SchoolMeta = {
   schoolName?: string;
   address?: string;
@@ -18,6 +31,7 @@ export type SchoolMeta = {
   session?: string;
   nextTermBegins?: string;
   portalToggles?: Record<string, boolean>;
+  scoreCaps?: ScoreCaps;
 };
 
 export type SchoolClass = {
@@ -567,7 +581,13 @@ export const api = {
         test3: number | null;
         exam: number | null;
       }[];
+      scoreCaps: ScoreCaps;
     }>(`/api/teacher/class/${encodeURIComponent(classId)}/subject/${encodeURIComponent(subjectId)}/scores`),
+
+  // Completion across EVERY subject in the class — drives when the
+  // signature upload is offered (only once all subjects are done).
+  classCompletion: (classId: string) =>
+    request<ClassCompletion>(`/api/teacher/class/${encodeURIComponent(classId)}/completion`),
 
   saveScore: (
     classId: string,
@@ -601,6 +621,15 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ key, value }),
     }),
+
+  // ---- Score caps (grading scale) ----
+  getScoreCaps: () => request<{ scoreCaps: ScoreCaps }>("/api/admin/scoreCaps"),
+
+  saveScoreCaps: (caps: ScoreCaps) =>
+    request<{ success: boolean; scoreCaps: ScoreCaps; overCap: Partial<Record<ScoreField, number>> }>(
+      "/api/admin/scoreCaps",
+      { method: "POST", body: JSON.stringify(caps) }
+    ),
 
   // ---- Factory reset ----
   factoryReset: (confirmation: string) =>

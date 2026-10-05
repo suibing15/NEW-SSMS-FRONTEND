@@ -6,6 +6,7 @@ import {
   Image as ImageIcon,
   ToggleLeft,
   ListChecks,
+  Calculator,
   Radio,
   ShieldAlert,
   KeyRound,
@@ -14,7 +15,7 @@ import {
   Mail,
   Skull,
 } from "lucide-react";
-import { api, ApiError, SchoolMeta, API_BASE } from "@/lib/api";
+import { api, ApiError, SchoolMeta, API_BASE, ScoreField, DEFAULT_SCORE_CAPS } from "@/lib/api";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -66,6 +67,7 @@ export default function SettingsPage() {
           <BrandingSection meta={meta} onSaved={loadAll} />
           <PortalTogglesSection meta={meta} onSaved={loadAll} />
           <TestTogglesSection />
+          <ScoreCapsSection />
           <BroadcastSection />
           <DataManagerSection locked={locked} onChanged={loadAll} />
           <AccountSecuritySection />
@@ -378,6 +380,150 @@ function TestTogglesSection() {
               </div>
             );
           })}
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+const CAP_LABELS: Record<ScoreField, string> = {
+  test1: "Test 1",
+  test2: "Test 2",
+  test3: "Test 3",
+  exam: "Exam",
+};
+
+// Quick starting points — every field stays freely editable afterwards.
+const CAP_PRESETS: { label: string; caps: Record<ScoreField, number> }[] = [
+  { label: "Exam 70 (10 · 10 · 10 · 70)", caps: { test1: 10, test2: 10, test3: 10, exam: 70 } },
+  { label: "Exam 60 (20 · 20 · – · 60)", caps: { test1: 20, test2: 20, test3: 0, exam: 60 } },
+  { label: "Exam 50 (25 · 25 · – · 50)", caps: { test1: 25, test2: 25, test3: 0, exam: 50 } },
+];
+
+function ScoreCapsSection() {
+  const { showToast } = useToast();
+  const [values, setValues] = useState<Record<ScoreField, string>>({
+    test1: String(DEFAULT_SCORE_CAPS.test1),
+    test2: String(DEFAULT_SCORE_CAPS.test2),
+    test3: String(DEFAULT_SCORE_CAPS.test3),
+    exam: String(DEFAULT_SCORE_CAPS.exam),
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api
+      .getScoreCaps()
+      .then((r) =>
+        setValues({
+          test1: String(r.scoreCaps.test1),
+          test2: String(r.scoreCaps.test2),
+          test3: String(r.scoreCaps.test3),
+          exam: String(r.scoreCaps.exam),
+        })
+      )
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const fields = ["test1", "test2", "test3", "exam"] as const;
+  const nums = fields.map((f) => (values[f].trim() === "" ? NaN : Number(values[f])));
+  const allValid = nums.every((n) => Number.isFinite(n) && n >= 0 && n <= 1000) && nums.some((n) => n > 0);
+  const total = nums.reduce((a, n) => a + (Number.isFinite(n) ? n : 0), 0);
+
+  async function handleSave() {
+    if (!allValid) {
+      showToast("Enter a number (0 or more) for every box, with at least one above 0.", "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      const caps = {
+        test1: nums[0],
+        test2: nums[1],
+        test3: nums[2],
+        exam: nums[3],
+      };
+      const { overCap } = await api.saveScoreCaps(caps);
+      showToast("Grading scale saved successfully.");
+      const flagged = Object.entries(overCap || {}).filter(([, n]) => n && n > 0);
+      if (flagged.length > 0) {
+        showToast(
+          `Some scores already entered are higher than the new maximum (${flagged
+            .map(([f, n]) => `${CAP_LABELS[f as ScoreField]}: ${n}`)
+            .join(", ")}). They haven't been changed — please review them.`,
+          "error"
+        );
+      }
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Failed to save grading scale.", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <SectionCard
+      icon={Calculator}
+      title="Grading Scale"
+      description="Set the maximum mark for each test and the exam. Teachers can't enter a score above its maximum. Use 0 for a test your school doesn't hold."
+    >
+      {loading ? (
+        <p className="text-sm text-ink/45">Loading…</p>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {CAP_PRESETS.map((p) => (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() =>
+                  setValues({
+                    test1: String(p.caps.test1),
+                    test2: String(p.caps.test2),
+                    test3: String(p.caps.test3),
+                    exam: String(p.caps.exam),
+                  })
+                }
+                className="text-xs font-medium rounded-full border border-ink/15 px-3 py-1.5 text-ink/70 hover:border-indigo hover:text-indigo transition-colors"
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {fields.map((f) => (
+              <div key={f}>
+                <label className={labelCls}>{CAP_LABELS[f]} — out of</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  inputMode="decimal"
+                  value={values[f]}
+                  onChange={(e) => setValues((v) => ({ ...v, [f]: e.target.value }))}
+                  className={inputCls}
+                />
+              </div>
+            ))}
+          </div>
+
+          <p className={`text-xs ${total === 100 ? "text-sage" : "text-gold-dark"}`}>
+            Total: <span className="font-mono font-semibold">{total}</span>
+            {total === 100
+              ? " — matches the usual 100-mark scale."
+              : " — not 100. That's allowed: grades on report sheets are worked out as a percentage of this total."}
+          </p>
+
+          <p className="text-xs text-ink/50">
+            Changing this doesn&apos;t alter scores that are already entered. If you lower a
+            maximum, you&apos;ll be told how many existing scores now exceed it.
+          </p>
+
+          <Button onClick={handleSave} disabled={saving || !allValid}>
+            <Save size={15} /> {saving ? "Saving…" : "Save grading scale"}
+          </Button>
         </div>
       )}
     </SectionCard>
