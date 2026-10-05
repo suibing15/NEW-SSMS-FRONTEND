@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen, ArrowRight } from "lucide-react";
+import { BookOpen, ArrowRight, ArrowLeft } from "lucide-react";
 import { api, ApiError, SchoolClass } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { HomeLink } from "@/components/home-link";
 
 export default function TeacherClassesPage() {
   const router = useRouter();
@@ -35,6 +37,15 @@ export default function TeacherClassesPage() {
   return (
     <main className="min-h-screen bg-parchment px-6 py-12">
       <div className="max-w-lg mx-auto animate-rise-in">
+        <div className="flex items-center justify-between mb-6">
+          <Link
+            href="/teacher"
+            className="inline-flex items-center gap-1.5 text-sm text-ink/50 hover:text-ink transition-colors"
+          >
+            <ArrowLeft size={15} /> Back
+          </Link>
+          <HomeLink />
+        </div>
         <p className="font-mono text-[11px] uppercase tracking-widest text-ink/40 text-center">
           Teacher Portal
         </p>

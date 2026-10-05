@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { HomeLink } from "@/components/home-link";
 import { ArrowLeft, GraduationCap } from "lucide-react";
 import { api, ApiError, API_BASE, Student } from "@/lib/api";
 import { resolveMediaUrl } from "@/lib/media-url";
@@ -38,12 +39,15 @@ export default function ExamStudentsPage({ params }: { params: { classId: string
   return (
     <main className="min-h-screen bg-parchment px-6 py-12">
       <div className="max-w-lg mx-auto animate-rise-in">
-        <Link
-          href="/exam/classes"
-          className="inline-flex items-center gap-1.5 text-sm text-ink/50 hover:text-ink transition-colors"
-        >
-          <ArrowLeft size={15} /> Back to classes
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link
+            href="/exam/classes"
+            className="inline-flex items-center gap-1.5 text-sm text-ink/50 hover:text-ink transition-colors"
+          >
+            <ArrowLeft size={15} /> Back to classes
+          </Link>
+          <HomeLink />
+        </div>
 
         <p className="mt-6 font-mono text-[11px] uppercase tracking-widest text-ink/40 text-center">
           Class · {classId}

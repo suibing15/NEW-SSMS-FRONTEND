@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { HomeLink } from "@/components/home-link";
 import { ArrowLeft, Search } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { Card } from "@/components/ui/card";
@@ -35,12 +36,15 @@ export default function ParentStudentSearchPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-parchment px-6">
       <div className="w-full max-w-sm animate-rise-in">
-        <Link
-          href="/parent"
-          className="inline-flex items-center gap-1.5 text-sm text-ink/50 hover:text-ink transition-colors"
-        >
-          <ArrowLeft size={15} /> Back
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link
+            href="/parent"
+            className="inline-flex items-center gap-1.5 text-sm text-ink/50 hover:text-ink transition-colors"
+          >
+            <ArrowLeft size={15} /> Back
+          </Link>
+          <HomeLink />
+        </div>
 
         <Card className="mt-6 p-8">
           <div className="w-11 h-11 rounded-full bg-indigo/[0.08] text-indigo flex items-center justify-center">

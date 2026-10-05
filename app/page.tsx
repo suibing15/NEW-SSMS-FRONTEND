@@ -1,16 +1,18 @@
 import { GraduationCap, PenSquare, Users, CalendarCheck } from "lucide-react";
 import { PortalCard } from "@/components/portal-card";
-import { api, SchoolMeta } from "@/lib/api";
 import { resolveMediaUrl } from "@/lib/media-url";
+import { fetchSchoolMeta } from "@/lib/server-meta";
+import { MetaAutoRetry } from "@/components/meta-auto-retry";
 
-async function getMeta(): Promise<SchoolMeta> {
-  try {
-    const res = await api.meta();
-    return res.meta || {};
-  } catch {
-    return {};
-  }
-}
+// Always rendered fresh on each visit. This page used to be prerendered
+// as a static page at build time, which froze whatever the backend
+// answered during the build (often nothing, if a sleeping server hadn't
+// woken yet) into the page until the next deploy — the reason a
+// school's logo, address and phone only "sometimes" appeared.
+export const dynamic = "force-dynamic";
+// Room for a slow backend wake-up (two bounded attempts) before the
+// page gives up and lets the browser keep retrying on its own.
+export const maxDuration = 30;
 
 // Splits a comma-separated phone field ("080..., 070..., 090...")
 // into each individual number. Previously this page only ever showed
@@ -24,7 +26,7 @@ function parsePhones(phone: string): string[] {
 }
 
 export default async function HomePage() {
-  const meta = await getMeta();
+  const { meta, ok: metaOk } = await fetchSchoolMeta();
   // Generic fallbacks — this frontend serves any school's backend, so
   // a fallback naming one specific school (as this used to) would show
   // up as wrong branding for every other school whenever /api/meta is
@@ -37,6 +39,7 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen flex flex-col bg-parchment">
+      <MetaAutoRetry active={!metaOk} />
       {/* Banner / letterhead — deep indigo, dominates the top of the
           page the way a real school letterhead or certificate would,
           rather than a thin strip sitting on top of empty space. */}

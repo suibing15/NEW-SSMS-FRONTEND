@@ -11,6 +11,7 @@ import {
   FileText,
   Settings,
   LogOut,
+  Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
@@ -104,6 +105,14 @@ export function Sidebar({
       </nav>
 
       <div className="px-3 py-4 border-t border-parchment/10">
+        <Link
+          href="/"
+          onClick={onClose}
+          className="flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-sm font-medium text-parchment/60 hover:bg-parchment/[0.08] hover:text-parchment transition-colors w-full"
+        >
+          <Home size={17} strokeWidth={2} />
+          Home
+        </Link>
         <button
           onClick={handleSignOut}
           className="flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-sm font-medium text-parchment/60 hover:bg-parchment/[0.08] hover:text-parchment transition-colors w-full"

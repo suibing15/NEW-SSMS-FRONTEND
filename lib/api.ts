@@ -88,6 +88,19 @@ class ApiError extends Error {
   }
 }
 
+// A 404 with a non-JSON body almost never means "that record doesn't
+// exist" — the backend always answers its own errors in JSON. It means
+// the request never reached the backend at all, typically because this
+// site's NEXT_PUBLIC_API_BASE_URL points at the wrong address (for
+// example at the frontend's own domain). Saying so beats a bare
+// "Request failed (404)" that sends people hunting in the wrong place.
+function failureMessage(status: number, isJson: boolean | undefined): string {
+  if (status === 404 && !isJson) {
+    return "Couldn't reach the school server (404). This site may be pointing at the wrong backend address. Please tell the administrator.";
+  }
+  return `Request failed (${status})`;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -102,7 +115,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const body = isJson ? await res.json() : null;
 
   if (!res.ok) {
-    throw new ApiError(body?.error || `Request failed (${res.status})`, res.status, body);
+    throw new ApiError(body?.error || failureMessage(res.status, isJson), res.status, body);
   }
   return body as T;
 }
@@ -127,7 +140,7 @@ async function requestForm<T>(path: string, formData: FormData, method = "POST")
   const isJson = res.headers.get("content-type")?.includes("application/json");
   const body = isJson ? await res.json() : null;
   if (!res.ok) {
-    throw new ApiError(body?.error || `Request failed (${res.status})`, res.status, body);
+    throw new ApiError(body?.error || failureMessage(res.status, isJson), res.status, body);
   }
   return body as T;
 }

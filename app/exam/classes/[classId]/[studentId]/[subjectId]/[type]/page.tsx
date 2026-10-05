@@ -169,6 +169,9 @@ export default function TakeExamPage({
           >
             ← Back to subject selection
           </Link>
+          <Link href="/" className="mt-4 ml-5 inline-block text-sm text-ink/50 hover:text-ink transition-colors">
+            Home
+          </Link>
         </Card>
       </main>
     );
@@ -185,6 +188,9 @@ export default function TakeExamPage({
             className="mt-4 inline-block text-sm text-indigo hover:text-gold-dark transition-colors"
           >
             ← Back to subject selection
+          </Link>
+          <Link href="/" className="mt-4 ml-5 inline-block text-sm text-ink/50 hover:text-ink transition-colors">
+            Home
           </Link>
         </Card>
       </main>
@@ -216,6 +222,9 @@ export default function TakeExamPage({
             className="mt-6 inline-block text-sm font-medium text-indigo hover:text-gold-dark transition-colors"
           >
             ← Back to subject selection
+          </Link>
+          <Link href="/" className="mt-6 ml-5 inline-block text-sm text-ink/50 hover:text-ink transition-colors">
+            Home
           </Link>
         </Card>
       </main>

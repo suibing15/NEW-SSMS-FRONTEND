@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { api } from "@/lib/api";
+import { fetchSchoolName } from "@/lib/server-meta";
 
 // Explicit rather than relying on Next.js's own default — width tied
 // to the device's actual screen width, initial-scale 1 so nothing
@@ -20,16 +20,11 @@ export const viewport: Viewport = {
 // `metadata` export, letting this fetch real data the same way any
 // Server Component page already does.
 export async function generateMetadata(): Promise<Metadata> {
-  let schoolName = "School Portal";
-  try {
-    const { meta } = await api.meta();
-    if (meta.schoolName) schoolName = meta.schoolName;
-  } catch {
-    // Falls back to the generic title above if the backend isn't
-    // reachable yet — never names a specific school here, since a
-    // fallback showing the wrong school's name would be worse than a
-    // neutral one.
-  }
+  // Falls back to a neutral title if the backend isn't reachable —
+  // never a specific school's name, since the wrong school's name would
+  // be worse than a generic one. Re-checked every few minutes rather than
+  // frozen at build time (see lib/server-meta.ts).
+  const schoolName = (await fetchSchoolName()) || "School Portal";
   return {
     title: `${schoolName} — Portal`,
     description: "School management portal for administrators, teachers, students, and parents.",

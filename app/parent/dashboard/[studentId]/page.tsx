@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { HomeLink } from "@/components/home-link";
 import {
   ArrowLeft,
   GraduationCap,
@@ -58,12 +59,15 @@ export default function ParentDashboardPage({ params }: { params: { studentId: s
   return (
     <main className="min-h-screen bg-parchment px-6 py-10">
       <div className="max-w-2xl mx-auto animate-rise-in">
-        <Link
-          href="/parent/search"
-          className="inline-flex items-center gap-1.5 text-sm text-ink/50 hover:text-ink transition-colors"
-        >
-          <ArrowLeft size={15} /> Search another student
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link
+            href="/parent/search"
+            className="inline-flex items-center gap-1.5 text-sm text-ink/50 hover:text-ink transition-colors"
+          >
+            <ArrowLeft size={15} /> Search another student
+          </Link>
+          <HomeLink />
+        </div>
 
         {/* Student card */}
         <Card className="mt-6 p-6 overflow-hidden">

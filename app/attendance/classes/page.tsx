@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { HomeLink } from "@/components/home-link";
 import { ArrowLeft, BookOpen, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card } from "@/components/ui/card";
@@ -16,12 +17,15 @@ export default function AttendanceClassesPage() {
   return (
     <main className="min-h-screen bg-parchment px-6 py-12">
       <div className="max-w-lg mx-auto animate-rise-in">
-        <Link
-          href="/attendance"
-          className="inline-flex items-center gap-1.5 text-sm text-ink/50 hover:text-ink transition-colors"
-        >
-          <ArrowLeft size={15} /> Back
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link
+            href="/attendance"
+            className="inline-flex items-center gap-1.5 text-sm text-ink/50 hover:text-ink transition-colors"
+          >
+            <ArrowLeft size={15} /> Back
+          </Link>
+          <HomeLink />
+        </div>
 
         <p className="mt-6 font-mono text-[11px] uppercase tracking-widest text-ink/40 text-center">
           Attendance Portal

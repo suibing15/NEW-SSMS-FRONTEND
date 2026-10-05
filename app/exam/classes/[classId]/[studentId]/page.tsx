@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { HomeLink } from "@/components/home-link";
 import { ArrowLeft, GraduationCap, BookOpen, ChevronRight } from "lucide-react";
 import { api, API_BASE, Student } from "@/lib/api";
 import { resolveMediaUrl } from "@/lib/media-url";
@@ -34,12 +35,15 @@ export default function ExamSubjectSelectPage({
   return (
     <main className="min-h-screen bg-parchment px-6 py-10">
       <div className="max-w-lg mx-auto animate-rise-in">
-        <Link
-          href={`/exam/classes/${encodeURIComponent(classId)}`}
-          className="inline-flex items-center gap-1.5 text-sm text-ink/50 hover:text-ink transition-colors"
-        >
-          <ArrowLeft size={15} /> Back
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link
+            href={`/exam/classes/${encodeURIComponent(classId)}`}
+            className="inline-flex items-center gap-1.5 text-sm text-ink/50 hover:text-ink transition-colors"
+          >
+            <ArrowLeft size={15} /> Back
+          </Link>
+          <HomeLink />
+        </div>
 
         {/* Student card — the professional identity card for this session */}
         <Card className="mt-6 p-6 text-center overflow-hidden">
